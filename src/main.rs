@@ -7,7 +7,7 @@ use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize, palette::tailwind},
     text::Text,
-    widgets::{Cell, HighlightSpacing, Paragraph, Row, Table, TableState},
+    widgets::{Cell, HighlightSpacing, Paragraph, Row, Table, TableState, Wrap},
 };
 
 const PALETTES: [tailwind::Palette; 4] = [
@@ -141,15 +141,30 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let (title_area, layout) = calculate_layout(frame.area());
+        let area = frame.area();
+        let min_width = 30;
+        let min_height = 10;
 
-        // handle the cell placements
-        self.state.select(Some(self.placement[0]));
-        self.state.select_column(Some(self.placement[1]));
+        if area.width < min_width || area.height < min_height {
+            let block = Paragraph::new("Terminal size too small.\nMinimum size is 30x10.")
+                .centered()
+                .wrap(Wrap { trim: true })
+                .style(Style::default().fg(Color::Red));
+            frame.render_widget(
+                block,
+                center(area, Constraint::Percentage(100), Constraint::Length(2)),
+            );
+        } else {
+            let (title_area, layout) = calculate_layout(area);
 
-        // render ui elements
-        self.render_title(frame, title_area);
-        self.render_table(frame, layout);
+            // handle the cell placements
+            self.state.select(Some(self.placement[0]));
+            self.state.select_column(Some(self.placement[1]));
+
+            // render ui elements
+            self.render_title(frame, title_area);
+            self.render_table(frame, layout);
+        }
     }
 
     fn render_title(&mut self, frame: &mut Frame, area: Rect) {
@@ -199,8 +214,7 @@ impl App {
 }
 
 fn calculate_layout(area: Rect) -> (Rect, Rect) {
-    let main_layout =
-        Layout::vertical([Constraint::Length(1), Constraint::Length(9)]).flex(Flex::Center);
+    let main_layout = Layout::vertical([Constraint::Max(1), Constraint::Max(9)]).flex(Flex::Center);
     let [title_area, main_area] = main_layout.areas(area);
     (
         center(title_area, Constraint::Length(30), Constraint::Length(1)),
